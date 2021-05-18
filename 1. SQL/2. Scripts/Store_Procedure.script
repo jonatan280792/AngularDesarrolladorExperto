@@ -1,0 +1,427 @@
+USE [ManagementChallenge]
+GO
+/****** Object:  StoredProcedure [data].[delete_Aeronaves]    Script Date: 17/05/2021 11:02:04 p. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		<Author, Jonatan Alexander Rojas>
+-- Create date: <Create Date, 2021/05/17>
+-- Description:	<Description, Elimina una aeronave>
+-- =============================================
+CREATE PROCEDURE [data].[delete_Aeronaves]
+	@id INT
+AS
+BEGIN
+
+	DECLARE
+		@count_reserva INT
+
+	-- BUSCA SI EXITEN RESERVAS ASOCIADAS A UNA AEROLINEA
+	SELECT @count_reserva = COUNT(id) 
+		FROM [data].[reservas] 
+	WHERE id = @id
+		AND finalizado = 0
+
+	-- MANEJADOR DE EVENTOS
+	BEGIN TRY
+	
+		IF (@count_reserva > 0)
+		BEGIN
+		-- SI TIENE EXISTENCIA AUN NO DEJA ELMINAR EL REGISTRO
+			SELECT -1 Transaccion, 'La aeronave tiene vuelo pendiente, elimine antes' Mensaje, 'Ok' Estado
+		END
+		ELSE
+		BEGIN
+		-- ELIMINA EL REGISTRO
+			DELETE FROM [data].[aeronaves] WHERE id = @id
+
+			SELECT 1 Transaccion, 'Registro eliminado exitosamente' Mensaje, 'Ok' Estado
+		END
+	
+	END TRY  
+	BEGIN CATCH  
+		 SELECT -1 Transaccion, 'Error al eliminar el registro' Mensaje, 'Error' Estado
+	END CATCH
+
+
+	
+	
+
+END
+
+GO
+/****** Object:  StoredProcedure [data].[delete_Pilotos]    Script Date: 17/05/2021 11:02:04 p. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		<Author, Jonatan Alexander Rojas>
+-- Create date: <Create Date, 2021/05/17>
+-- Description:	<Description, Elimina una pilotos>
+-- =============================================
+CREATE PROCEDURE [data].[delete_Pilotos]
+	@id INT
+AS
+BEGIN
+
+
+	-- MANEJADOR DE EVENTOS
+	BEGIN TRY
+		-- ELIMINA EL REGISTRO
+			DELETE FROM [data].[pilotos] WHERE id = @id
+
+			SELECT 1 Transaccion, 'Registro eliminado exitosamente' Mensaje, 'Ok' Estado		
+	
+	END TRY  
+	BEGIN CATCH  
+		 SELECT -1 Transaccion, 'Error al eliminar el registro' Mensaje, 'Error' Estado
+	END CATCH
+
+
+	
+	
+
+END
+
+GO
+/****** Object:  StoredProcedure [data].[get_Aeronaves]    Script Date: 17/05/2021 11:02:04 p. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		<Author, Jonatan Alexander Rojas>
+-- Create date: <Create Date, 2021/05/17>
+-- Description:	<Description, Retorna las aeronaves activas>
+-- =============================================
+CREATE PROCEDURE [data].[get_Aeronaves]
+	@status BIT
+AS
+BEGIN
+	SELECT 
+		A.[id], 
+		[nombre],
+		[idLinea],
+		C.[descripcion] AS linea,
+		[capacidad],
+		A.[descripcion],
+		[estado],
+		[fechaCreacion]
+	FROM [data].[aeronaves] A
+	INNER JOIN [core].[constantes] C
+		ON A.idLinea = C.[codigoNegocio] AND C.cteId = 1
+	-- WHERE [estado] = @status
+		ORDER BY [nombre]
+END
+
+GO
+/****** Object:  StoredProcedure [data].[get_Pilotos]    Script Date: 17/05/2021 11:02:04 p. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		<Author, Jonatan Alexander Rojas>
+-- Create date: <Create Date, 2021/05/17>
+-- Description:	<Description, Retorna los pilotos activas>
+-- =============================================
+CREATE PROCEDURE [data].[get_Pilotos]
+	@status BIT
+AS
+BEGIN
+	SELECT 
+		P.[id], 
+		[nombres],
+		[apellidos],
+		CASE
+			WHEN ([idAeronave] IS NULL) THEN 0
+			ELSE idAeronave END as [idAeronave],
+		A.nombre AS aeronave,
+		P.[estado],
+		P.[fechaCreacion]
+	FROM [data].[pilotos] P
+	LEFT JOIN [data].[aeronaves] A
+		ON P.idAeronave = A.id
+	-- WHERE [estado] = @status
+		ORDER BY [nombres]
+END
+
+GO
+/****** Object:  StoredProcedure [data].[put_Aeronaves]    Script Date: 17/05/2021 11:02:04 p. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		<Author, Jonatan Alexander Rojas>
+-- Create date: <Create Date, 2021/05/17>
+-- Description:	<Description, Actualiza los datos de una aeronave>
+-- =============================================
+CREATE PROCEDURE [data].[put_Aeronaves]
+	@id INT,
+	@nombre VARCHAR(45),
+	@idLinea INT,
+	@capacidad INT,
+	@descripcion NVARCHAR(MAX),
+	@estado BIT
+	
+AS
+BEGIN
+
+	-- MANEJADOR DE EVENTOS
+	BEGIN TRY
+	
+		UPDATE [data].[aeronaves] SET
+			[nombre] = @nombre,
+			[idLinea] = @idLinea,
+			[capacidad] = @capacidad,
+			[descripcion] = @descripcion,
+			[estado] = @estado
+		WHERE id = @id
+
+		SELECT 1 Transaccion, 'Aeronave actualizada exitosamente' Mensaje, 'Ok' Estado
+	
+	END TRY  
+	BEGIN CATCH  
+		 SELECT -1 Transaccion, 'Error al actualizar el registro' Mensaje, 'Error' Estado
+	END CATCH
+END
+GO
+/****** Object:  StoredProcedure [data].[put_Pilotos]    Script Date: 17/05/2021 11:02:04 p. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		<Author, Jonatan Alexander Rojas>
+-- Create date: <Create Date, 2021/05/17>
+-- Description:	<Description, Actualiza los datos depilotos>
+-- =============================================
+CREATE PROCEDURE [data].[put_Pilotos]
+	@id INT,
+	@nombres VARCHAR(100),
+	@apellidos VARCHAR(100),
+	@idAeronave INT,
+	@estado BIT
+	
+AS
+BEGIN
+
+	-- MANEJADOR DE EVENTOS
+	BEGIN TRY
+	
+		UPDATE [data].[pilotos] SET
+			[nombres] = @nombres,
+			[apellidos] = @apellidos,
+			[idAeronave] = @idAeronave,
+			[estado] = @estado
+		WHERE id = @id
+
+		SELECT 1 Transaccion, 'Piloto actualizada exitosamente' Mensaje, 'Ok' Estado
+	
+	END TRY  
+	BEGIN CATCH  
+		 SELECT -1 Transaccion, 'Error al actualizar el registro' Mensaje, 'Error' Estado
+	END CATCH
+END
+GO
+/****** Object:  StoredProcedure [data].[set_Aeronaves]    Script Date: 17/05/2021 11:02:04 p. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		<Author, Jonatan Alexander Rojas>
+-- Create date: <Create Date, 2021/05/17>
+-- Description:	<Description, Inserta nuevas aeronaves en la tabla>
+-- =============================================
+CREATE PROCEDURE [data].[set_Aeronaves]
+	@nombre VARCHAR(45),
+	@idLinea INT,
+	@capacidad INT,
+	@descripcion NVARCHAR(MAX),
+	@estado BIT
+AS
+BEGIN
+	DECLARE
+	--OBTENGO LA FECHA ACTUAL PARA SU CORRESPONDIENTE REGISTRO
+		@fecha_registro DATETIME = GETDATE()
+
+	-- MANEJADOR DE EVENTOS
+	BEGIN TRY
+	
+		-- INSERTA UNA NUEVA AERONAVE
+		INSERT INTO [data].[aeronaves] (
+			[nombre], 
+			[idLinea],
+			[estado],
+			[capacidad],
+			[descripcion],
+			[fechaCreacion]
+		) VALUES (
+			@nombre,
+			@idLinea,
+			@estado,
+			@capacidad,
+			@descripcion,
+			@fecha_registro
+		)
+
+		SELECT 1 Transaccion, 'Aeronave creada exitosamente' Mensaje, 'Ok' Estado
+	
+	END TRY  
+	BEGIN CATCH  
+		 SELECT -1 Transaccion, 'Error al crear el registro' Mensaje, 'Error' Estado
+	END CATCH
+END
+
+GO
+/****** Object:  StoredProcedure [data].[set_Pilotos]    Script Date: 17/05/2021 11:02:04 p. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		<Author, Jonatan Alexander Rojas>
+-- Create date: <Create Date, 2021/05/17>
+-- Description:	<Description, Inserta nuevos pilotos en la tabla>
+-- =============================================
+CREATE PROCEDURE [data].[set_Pilotos]
+	@nombres VARCHAR(100),
+	@apellidos VARCHAR(100),
+	@idAeronave INT,
+	@estado BIT
+AS
+BEGIN
+	DECLARE
+	--OBTENGO LA FECHA ACTUAL PARA SU CORRESPONDIENTE REGISTRO
+		@fecha_registro DATETIME = GETDATE()
+
+	-- MANEJADOR DE EVENTOS
+	BEGIN TRY
+	
+		-- INSERTA UNA NUEVA PILOTO
+		INSERT INTO [data].[pilotos] (
+			[nombres], 
+			[apellidos],
+			[idAeronave],
+			[estado],			
+			[fechaCreacion]
+		) VALUES (
+			@nombres,
+			@apellidos,
+			@idAeronave,
+			@estado,
+			@fecha_registro
+		)
+
+		SELECT 1 Transaccion, 'Piloto creado exitosamente' Mensaje, 'Ok' Estado
+	
+	END TRY  
+	BEGIN CATCH  
+		 SELECT -1 Transaccion, 'Error al crear el registro' Mensaje, 'Error' Estado
+	END CATCH
+END
+
+GO
+/****** Object:  StoredProcedure [data].[set_Reservas]    Script Date: 17/05/2021 11:02:04 p. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		<Author, Jonatan Alexander Rojas>
+-- Create date: <Create Date, 2021/05/17>
+-- Description:	<Description, Inserta nuevas reservas>
+-- =============================================
+CREATE PROCEDURE [data].[set_Reservas]
+	@destino VARCHAR(100),
+	@fechaIda DATE,
+	@fechaRegreso DATE,
+	@pasajeros INT,
+	@finalizado BIT
+AS
+BEGIN
+	DECLARE
+	--OBTENGO LA FECHA ACTUAL PARA SU CORRESPONDIENTE REGISTRO
+		@fecha_registro DATETIME = GETDATE()
+
+	-- MANEJADOR DE EVENTOS
+	BEGIN TRY
+	
+		-- INSERTA UNA NUEVA PILOTO
+		INSERT INTO [data].[reservas] (
+			[idAeronave], 
+			[destino],
+			[fechaIda],
+			[fechaRegreso],
+			[pasajeros],
+			[finalizado],
+			[fechaCreacion]
+		) VALUES (
+			1,
+			@destino,
+			@fechaIda,
+			@fechaRegreso,
+			@pasajeros,
+			@finalizado,
+			@fecha_registro
+		)
+
+		SELECT 1 Transaccion, 'Reserva creado exitosamente' Mensaje, 'Ok' Estado
+	
+	END TRY  
+	BEGIN CATCH  
+		 SELECT -1 Transaccion, 'Error al crear el registro' Mensaje, 'Error' Estado
+	END CATCH
+END
+
+GO
+/****** Object:  StoredProcedure [identity].[get_Login]    Script Date: 17/05/2021 11:02:04 p. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		<Author, Jonatan Alexander Rojas>
+-- Create date: <Create Date, 2020/10/20>
+-- Description:	<Description, Loguea al usuario>
+-- =============================================
+CREATE PROCEDURE [identity].[get_Login]
+	@userName VARCHAR(45),
+	@passWord VARCHAR(45),
+	@status BIT
+AS
+BEGIN
+	DECLARE
+		@id int
+
+	SELECT TOP 1
+		@id = [id]
+	FROM [identity].[usuarios]
+		WHERE [usuario] = @userName
+		AND [contraseña] = @passWord
+		AND [estado] = @status
+
+
+	IF (@id IS NOT NULL)
+	BEGIN
+		SELECT TOP 1
+			[id],
+			[title] as usuario,
+			[tipo],
+			'Ok' [codigo]
+		FROM [identity].[usuarios]
+			WHERE [usuario] = @userName
+			AND [contraseña] = @passWord
+	END
+	ELSE
+	BEGIN
+		SELECT 
+			'Error' [codigo]
+	END;
+END
+GO
